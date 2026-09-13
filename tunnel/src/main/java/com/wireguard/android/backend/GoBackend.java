@@ -7,6 +7,7 @@ package com.wireguard.android.backend;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.system.OsConstants;
@@ -299,6 +300,24 @@ public final class GoBackend implements Backend {
 
             for (final String excludedApplication : config.getInterface().getExcludedApplications())
                 builder.addDisallowedApplication(excludedApplication);
+
+            if (config.getInterface().getIncludedApplications().isEmpty()) {
+                final String[] captivePortalPackages = {
+                        "com.google.android.captiveportallogin",
+                        "com.android.captiveportallogin",
+                        "com.samsung.android.captiveportallogin",
+                        "com.huawei.android.captiveportallogin"
+                };
+                for (final String pkg : captivePortalPackages) {
+                    try {
+                        builder.addDisallowedApplication(pkg);
+                    } catch (final PackageManager.NameNotFoundException e) {
+                        Log.d(TAG, "Captive portal package not found: " + pkg);
+                    } catch (final UnsupportedOperationException e) {
+                        Log.d(TAG, "Cannot add disallowed application " + pkg + ": " + e.getMessage());
+                    }
+                }
+            }
 
             for (final String includedApplication : config.getInterface().getIncludedApplications())
                 builder.addAllowedApplication(includedApplication);
